@@ -189,6 +189,9 @@ int main() {
 	printf("Dictionary Stats:\n");
 	printf("  Count: %ld\n", dictionary->count);
 	printf("  Capacity: %ld\n", dictionary->capacity);
+	printf("  Filled: %g\n", (double)dictionary->count / (double)dictionary->capacity);
+	printf("  Collision Count: %ld\n", dictionary->collision_count);
+	printf("  Collision Rate: %g\n", (double)dictionary->collision_count / (double)dictionary->count);
 	printf("\n");
 	
 	

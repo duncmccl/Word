@@ -30,20 +30,28 @@ typedef struct {
 	
 } hash_map_t;
 
+
+
+// Creates a hashnode
 hash_node_t * create_hash_node(unsigned long thing_hash, size_t thing_size, void * thing);
+
+// Destroys a hashnode
 void destroy_hash_node(hash_node_t * hn, void (*destructor)(void *));
 
+// Creates a hashmap
 hash_map_t * create_hash_map(size_t initial_size);
+
+// Destroys a hashmap
 void destroy_hash_map(hash_map_t * hm, void(*destructor)(void *));
 
+// Increases capacity of hashmap
 void expand_map(hash_map_t * hm);
 
+// Addes hashnode to hashmap
 hash_node_t * insert_hash_map(hash_map_t * hm, hash_node_t * hn);
 
-
+// returns hashnode with the given hash or NULL if no node has hash
 hash_node_t * search_hash_map(hash_map_t * hm, unsigned long hash);
-hash_node_t * pop_hash_map(hash_map_t * hm, unsigned long hash);
-void remove_hash_map(hash_map_t * hm, hash_node_t * hn);
 
 
 
@@ -132,7 +140,7 @@ void expand_map(hash_map_t * hm) {
 
 hash_node_t * insert_hash_map(hash_map_t * hm, hash_node_t * hn) {
 	
-	if (hm->count * 3 >= hm->capacity * 2) expand_map(hm);
+	if (hm->count * 4 >= hm->capacity * 3) expand_map(hm);
 	
 	hm->miss_count = 0;
 	
