@@ -228,15 +228,15 @@ int main() {
 		queary = search_hash_map(dictionary, hash_queary);
 		
 		printf("Queary: %s\n", str_queary);
-		printf("Hash: %ld\n", hash_queary);
+		printf("  Hash: %ld\n", hash_queary);
 		
 		if (queary) {
 			
 			hash_map_t * word_list = queary->thing;
 			
-			printf("Success!\nCount: %ld\n", word_list->count);
+			printf("  Success!\n  Misses: %ld\n  Count: %ld\n", dictionary->miss_count, word_list->count);
 			
-			printf("    row,   col\n");
+			printf("      row,   col\n");
 			
 			for(size_t j = 0; j < word_list->capacity; j++) {
 				if (word_list->map[j]) {
@@ -244,13 +244,13 @@ int main() {
 					hash_node_t * pos_entry = word_list->map[j];
 					pos_t * pos = (pos_t *) pos_entry->thing;
 					
-					printf("[ %5ld, %5ld ]\n", pos->row, pos->col);
+					printf("  [ %5ld, %5ld ]\n", pos->row, pos->col);
 				}
 			}
 			
 		} else {
 			
-			printf("Fail!\n");
+			printf("  Fail!\n  Misses: %ld\n", dictionary->miss_count);
 			
 		}
 		

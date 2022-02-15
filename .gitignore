@@ -51,4 +51,5 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-text.txt
+# Ignore sample text files
+*.txt
