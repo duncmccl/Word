@@ -105,6 +105,11 @@ int main() {
 	// Read file and populate hashmap
 	FILE * text_f = fopen("text.txt", "r");
 	
+	if (!text_f) {
+		fprintf(stderr, "Failed to open file!\n");
+		return 1;
+	}
+	
 	size_t buff_size = 2048;
 	char buff[buff_size];
 	
