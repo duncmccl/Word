@@ -234,12 +234,13 @@ int main() {
 		
 		printf("Queary: %s\n", str_queary);
 		printf("  Hash: %ld\n", hash_queary);
+		printf("  Miss: %ld\n", dictionary->miss_count);
 		
 		if (queary) {
 			
 			hash_map_t * word_list = queary->thing;
 			
-			printf("  Success!\n  Misses: %ld\n  Count: %ld\n", dictionary->miss_count, word_list->count);
+			printf("  Success!\n  Count: %ld\n", word_list->count);
 			
 			printf("      row,   col\n");
 			
@@ -255,7 +256,7 @@ int main() {
 			
 		} else {
 			
-			printf("  Fail!\n  Misses: %ld\n", dictionary->miss_count);
+			printf("  Fail!\n");
 			
 		}
 		
