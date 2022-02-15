@@ -197,71 +197,68 @@ int main() {
 	unsigned long hash_queary;
 	hash_node_t * queary;
 	
-	size_t queary_count = 20;
-	char queary_list[20][256] = {
-		"sherlock",
-		"watson",
-		"lock",
-		"door",
-		"apple",
-		"aware",
-		"document",
-		"sour",
-		"grudge",
-		"flex",
-		"galaxy",
-		"system",
-		"injection",
-		"frighten",
-		"medium",
-		"increase",
-		"salon",
-		"convert",
-		"color",
-		"finance"
-	};
+	FILE * queary_f = fopen("queary.txt", "r");
+	
+	if (!queary_f) {
+		fprintf(stderr, "Failed to open queary.txt!\n");
+		return 1;
+	}
 	
 	
-	
-	for(size_t i = 0; i < queary_count; i++) {
+	while(fgets(buff, buff_size, queary_f)) {
 		
-		str_queary = queary_list[i];
-		len_queary = strlen(str_queary);
+		clean_string(buff);
 		
-		hash_queary = simple_hash(len_queary, str_queary);
-		
-		queary = search_hash_map(dictionary, hash_queary);
-		
-		printf("Queary: %s\n", str_queary);
-		printf("  Hash: %ld\n", hash_queary);
-		printf("  Miss: %ld\n", dictionary->miss_count);
-		
-		if (queary) {
+		if (strlen(buff) > 0) {
 			
-			hash_map_t * word_list = queary->thing;
+			str_queary = strtok(buff, " ");
 			
-			printf("  Success!\n  Count: %ld\n", word_list->count);
-			
-			printf("      row,   col\n");
-			
-			for(size_t j = 0; j < word_list->capacity; j++) {
-				if (word_list->map[j]) {
+			while(str_queary) {
+				
+				len_queary = strlen(str_queary) + 1;
+				
+				hash_queary = simple_hash(len_queary, str_queary);
+				
+				queary = search_hash_map(dictionary, hash_queary);
+				
+				printf("Queary: %s\n", str_queary);
+				printf("  Hash: %ld\n", hash_queary);
+				printf("  Miss: %ld\n", dictionary->miss_count);
+				
+				if (queary) {
 					
-					hash_node_t * pos_entry = word_list->map[j];
-					pos_t * pos = (pos_t *) pos_entry->thing;
+					hash_map_t * word_list = queary->thing;
 					
-					printf("  [ %5ld, %5ld ]\n", pos->row, pos->col);
+					printf("  Success!\n  Count: %ld\n", word_list->count);
+					
+					printf("      row,   col\n");
+
+					for(size_t j = 0; j < word_list->capacity; j++) {
+						if (word_list->map[j]) {
+							
+							hash_node_t * pos_entry = word_list->map[j];
+							pos_t * pos = (pos_t *) pos_entry->thing;
+							
+							printf("  [ %5ld, %5ld ]\n", pos->row, pos->col);
+						}
+					}
+					
+				} else {
+					
+					printf("  Fail!\n");
+					
 				}
+				
+				printf("\n");
+				
+				str_queary = strtok(str_queary + len_queary, " ");
 			}
-			
-		} else {
-			
-			printf("  Fail!\n");
 			
 		}
 		
-		printf("\n");
 	}
+	
+	fclose(queary_f);
 	
 	
 	
