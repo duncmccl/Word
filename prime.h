@@ -78,11 +78,7 @@ size_t find_prime(unsigned long seed, size_t start, size_t end) {
 	size_t mid = start + ((end - start) >> 1);
 	
 	if (start == mid) {
-		if (PRIME_GEN_LIST[start] < seed) {
-			return start + 1;
-		} else {
-			return start;
-		}
+		return end;
 	}
 	
 	if (PRIME_GEN_LIST[mid] < seed) {

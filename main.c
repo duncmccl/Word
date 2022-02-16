@@ -128,7 +128,7 @@ size_t next_word(FILE * file, char * buffer, size_t limit) {
 
 typedef struct {
 	enum OBJTYP objtyp;
-	size_t index;
+	size_t index, row, col;
 } pos_t;
 
 
@@ -156,7 +156,6 @@ int main() {
 	char buff[buff_size];
 	size_t word_length = 0;
 	size_t word_index = 0;
-	
 	
 	word_length = next_word(text_f, buff, buff_size);
 	
@@ -193,7 +192,6 @@ int main() {
 		
 		hash_node_t * reject = insert_hash_map(word_list, pos_node);
 		if (reject) destroy_hash_node(reject, beelzebub);
-		
 		
 		word_length = next_word(text_f, buff, buff_size);
 		word_index++;
@@ -280,6 +278,22 @@ int main() {
 	
 	printf("Average Miss rate: %g\n", (double)miss_count / (double)word_index);
 	printf("Log2 of Dictionary Count: %g\n", log2(dictionary->count));
+	
+	
+	/*
+	printf("%5ld | ", 0l);
+	for(size_t i = 0; i < dictionary->capacity; i++) {
+		if (dictionary->map[i] == NULL) {
+			printf("_");
+		} else {
+			printf("X");
+		}
+		if ((i + 1) % 64 == 0) printf("\n%5ld | ", i+1);
+	}
+	
+	printf("\n");
+	*/
+	
 	
 	destroy_hash_map(dictionary, beelzebub);
 	

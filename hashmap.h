@@ -106,6 +106,7 @@ void destroy_hash_map(hash_map_t * hm, void (*destructor)(void *)) {
 	
 }
 
+
 void expand_map(hash_map_t * hm) {
 	
 	size_t old_capacity = hm->capacity;
@@ -123,11 +124,15 @@ void expand_map(hash_map_t * hm) {
 			
 			hash_node_t * hn = old_map[i];
 			
+			hm->miss_count = 0;
+			
 			size_t j = hn->thing_hash % hm->capacity;
 			
 			while (hm->map[j] != NULL) {
-				j = (j + 1) % hm->capacity;
 				hm->collision_count++;
+				hm->miss_count++;
+				j = (j + 3) % hm->capacity;
+				
 			}
 			
 			hm->map[j] = hn;
@@ -147,9 +152,9 @@ hash_node_t * insert_hash_map(hash_map_t * hm, hash_node_t * hn) {
 	size_t i = hn->thing_hash % hm->capacity;
 	
 	while(hm->map[i] != NULL && hm->map[i]->thing_hash != hn->thing_hash) {
-		i = (i + 1) % hm->capacity;
 		hm->collision_count++;
 		hm->miss_count++;
+		i = (i + 3) % hm->capacity;
 	}
 	
 	hash_node_t * rtn = hm->map[i];
@@ -169,8 +174,8 @@ hash_node_t * search_hash_map(hash_map_t * hm, unsigned long hash) {
 	size_t i = hash % hm->capacity;
 	
 	while (hm->map[i] != NULL && hm->map[i]->thing_hash != hash) {
-		i = (i + 1) % hm->capacity;
 		hm->miss_count++;
+		i = (i + 3) % hm->capacity;
 	}
 	
 	return hm->map[i];
