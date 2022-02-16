@@ -42,68 +42,10 @@ unsigned long simple_hash(const size_t len, const void * str) {
 }
 
 
-void clean_string(char * str) {
-	
-	
-	char * head = str;
-	
-	while (*head != '\0') {
-		
-		if (*head >= 'A' && *head <= 'Z') {
-			
-			*head = tolower(*head);
-			
-		} else if (*head >= 'a' && *head <= 'z') {
-			
-			// Do nothing
-			
-		} else {
-			
-			*head = ' ';
-			
-		}
-		
-		head++;
-	}
-	
-	
-	
-	// Remove any leading or repeating spaces
-	
-	head = str;
-	char * tail = head;
-	char space = 1;
-	
-	while (*head != '\0') {
-		
-		if (*head == ' ' && space) {
-			
-			head++;
-			
-		} else if (*head == ' ' && !space) {
-			
-			*tail = *head;
-			head++;
-			tail++;
-			space = 1;
-			
-		} else {
-			
-			*tail = *head;
-			head++;
-			tail++;
-			space = 0;
-			
-		}
-	}
-	
-	*tail = *head;
-}
 
 
-
-char is_ascii(unsigned char c) {
-	return (c >= 'A' && c < 'Z') || (c >= 'a' && c <= 'z');
+unsigned char is_letter(unsigned char c) {
+	return ((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z'));
 }
 
 // Reads in a word from file
@@ -116,12 +58,13 @@ size_t next_word(FILE * file_f, char * buffer, size_t limit) {
 	
 	do {
 		c = fgetc(file_f);
-	} while (!is_ascii(c) && !feof(file_f));
+		if (c == 0xFF) return 0;
+	} while (!is_letter(c) && c != 0xFF);
 	
 	
 	size_t count = 0;
-	while (is_ascii(c) && !feof(file_f)) {
-		buffer[count] = c;
+	while (is_letter(c) && !feof(file_f)) {
+		buffer[count] = tolower(c);
 		c = fgetc(file_f);
 		count++;
 	}
@@ -137,84 +80,116 @@ size_t next_word(FILE * file_f, char * buffer, size_t limit) {
 
 
 
-
-
-
-typedef struct {
-	enum OBJTYP objtyp;
-	size_t index, row, col;
-} pos_t;
-
-
-int main() {
+void tabulate(const char * file_name, hash_map_t * dictionary, hash_map_t * resolver) {
 	
-	// Initilize global prime number generator
-	init_prime();
+	size_t file_length = strlen(file_name) + 1;
+	unsigned long file_hash = simple_hash(file_length, file_name);
 	
-	
-	/*
-	DIR * d;
-	struct dirent * dir;
-	d = opendir("./toread");
-	if (d) {
+	// Hash resolver for file name
+	hash_node_t * file_hash_resolver_entry = search_hash_map(resolver, file_hash);
+	if (!file_hash_resolver_entry) {
+		string_t dummy;
+		dummy.objtyp = STRING;
+		dummy.length = file_length;
+		dummy.bytes = (char *) malloc(file_length);
+		memcpy(dummy.bytes, file_name, file_length);
 		
-		while ((dir = readdir(d)) != NULL) {
-			
-			if (!strcmp(dir->d_name, ".")) break;
-			
-			printf("%s\n", dir->d_name);
-			
-			
-			// Open and read file into dictionary
-			
-			
-			
-		}
-		closedir(d);
+		file_hash_resolver_entry = create_hash_node(file_hash, sizeof(string_t), &dummy);
 		
-	} else {
-		fprintf(stderr, "Failed to open toread dir!\n");
+		hash_node_t * reject = insert_hash_map(resolver, file_hash_resolver_entry);
+		if (reject) destroy_hash_node(reject, u_destroy);
 	}
 	
-	*/
 	
+	char dir[1024] = "./toread/";
+	char * full_dir = strcat(dir, file_name);
 	
-	// Create Hashmap for dictionary
-	hash_map_t * dictionary = create_hash_map(10);
-	
-	
-	
-	// Read file and populate hashmap
-	FILE * text_f = fopen("text.txt", "r");
+	FILE * text_f = fopen(full_dir, "r");
 	
 	if (!text_f) {
-		fprintf(stderr, "Failed to open file!\n");
-		return 1;
+		fprintf(stderr, "Failed to open file: %s\n", full_dir);
+		return;
 	}
 	
 	size_t buff_size = 2048;
 	char buff[buff_size];
 	size_t word_length = 0;
-	size_t word_index = 0;
-	
-	word_length = next_word(text_f, buff, buff_size);
 	
 	
-	
-	while(!feof(text_f) && word_length > 1) {
+	do {
+		
+		word_length = next_word(text_f, buff, buff_size);
 		
 		if (word_length > 1) {
 			
 			unsigned long word_hash = simple_hash(word_length, buff);
-
-			size_t pos_len = sizeof(pos_t);
-			pos_t pos = (pos_t) {INDEX, word_index};
-			unsigned long pos_hash = simple_hash(pos_len, &pos);
-			hash_node_t * pos_node = create_hash_node(pos_hash, pos_len, &pos);
-
-			hash_node_t * dictionary_entry = search_hash_map(dictionary, word_hash);
-
-			if (dictionary_entry == NULL) {
+			
+			
+			// Hash Resolver for word
+			hash_node_t * word_hash_resolver_entry = search_hash_map(resolver, word_hash);
+			if (!word_hash_resolver_entry) {
+				
+				string_t dummy;
+				dummy.objtyp = STRING;
+				dummy.length = word_length;
+				dummy.bytes = (char *) malloc(word_length);
+				memcpy(dummy.bytes, buff, word_length);
+				
+				word_hash_resolver_entry = create_hash_node(word_hash, sizeof(string_t), &dummy);
+				
+				hash_node_t * reject = insert_hash_map(resolver, word_hash_resolver_entry);
+				if (reject) destroy_hash_node(reject, u_destroy);
+				
+			}
+			
+			
+			
+			// Does word exist in dictionary?
+			
+			hash_node_t * word_query = search_hash_map(dictionary, word_hash);
+			
+			if (word_query) {
+				
+				// Word does exist
+				
+				hash_map_t * dictionary_entry = (hash_map_t *) word_query->thing;
+				
+				
+				
+				hash_node_t * file_query = search_hash_map(dictionary_entry, file_hash);
+				
+				// Does file exist for word? 
+				
+				if (file_query) {
+					
+					// Word has appeared in file before
+					
+					counter_t * counter = (counter_t *) file_query->thing;
+					
+					counter->count++;
+					
+				} else {
+					
+					// Word has not appeared in file before
+					
+					// Create a file entry
+					counter_t dummy;
+					dummy.objtyp = COUNTER;
+					dummy.count = 1;
+					
+					file_query = create_hash_node(file_hash, sizeof(counter_t), &dummy);
+					
+					hash_node_t * reject = insert_hash_map(dictionary_entry, file_query);
+					if (reject) destroy_hash_node(reject, u_destroy);
+				}
+				
+				
+			} else {
+				
+				// Word does not exist
+				
+				// Must make a new word entry
+				
 				hash_map_t dummy;
 				dummy.objtyp = HASHMAP;
 				dummy.capacity = next_prime(10);
@@ -225,132 +200,126 @@ int main() {
 				}
 				dummy.collision_count = 0;
 				dummy.miss_count = 0;
-
-				dictionary_entry = create_hash_node(word_hash, sizeof(hash_map_t), &dummy);
-				hash_node_t * reject = insert_hash_map(dictionary, dictionary_entry);
+				
+				word_query = create_hash_node(word_hash, sizeof(hash_map_t), &dummy);
+				
+				hash_node_t * reject = insert_hash_map(dictionary, word_query);
 				if (reject) destroy_hash_node(reject, u_destroy);
-
+				
+				
+				
+				hash_map_t * dictionary_entry = (hash_map_t *) word_query->thing;
+				
+				
+				// Must make a new file entry
+				
+				counter_t dummy_2;
+				dummy_2.objtyp = COUNTER;
+				dummy_2.count = 1;
+				
+				hash_node_t * file_query = create_hash_node(file_hash, sizeof(counter_t), &dummy_2);
+				
+				reject = insert_hash_map(dictionary_entry, file_query);
+				if (reject) destroy_hash_node(reject, u_destroy);
+				
 			}
-
-			hash_map_t * word_list = (hash_map_t *) dictionary_entry->thing;
-
-			hash_node_t * reject = insert_hash_map(word_list, pos_node);
-			if (reject) destroy_hash_node(reject, u_destroy);
-
-			word_length = next_word(text_f, buff, buff_size);
-			word_index++;
+			
 		}
-	}
+		
+	} while (word_length > 0);
 	
 	fclose(text_f);
 	
+}
+
+
+
+
+
+
+
+int main() {
+	
+	// Initilize global prime number generator
+	init_prime();
+	
+	// Create Hashmap for dictionary
+	hash_map_t * dictionary = create_hash_map(10);
+	
+	// Create Hashmap for hash resolver
+	hash_map_t * resolver = create_hash_map(10);
 	
 	
-	
-	
-	
-	printf("Dictionary Stats:\n");
-	printf("  Count: %ld\n", dictionary->count);
-	printf("  Capacity: %ld\n", dictionary->capacity);
-	printf("  Filled: %g\n", (double)dictionary->count / (double)dictionary->capacity);
-	printf("  Collision Count: %ld\n", dictionary->collision_count);
-	printf("  Collision Rate: %g\n", (double)dictionary->collision_count / (double)dictionary->count);
-	printf("\n");
-	
-	
-	unsigned long hash_queary;
-	hash_node_t * queary;
-	
-	unsigned long miss_count = 0;
-	
-	FILE * queary_f = fopen("queary.txt", "r");
-	
-	if (!queary_f) {
-		fprintf(stderr, "Failed to open queary.txt!\n");
-		return 1;
-	}
-	
-	
-	word_length = next_word(queary_f, buff, buff_size);
-	word_index = 0;
-	
-	while(!feof(queary_f) && word_length > 1) {
+	DIR * d;
+	struct dirent * dir;
+	d = opendir("./toread");
+	if (d) {
 		
-		if (word_length > 1) {
-		
-			hash_queary = simple_hash(word_length, buff);
+		while ((dir = readdir(d)) != NULL) {
 			
-			clock_t start = clock();
+			if (!strcmp(dir->d_name, ".")) break;
 			
-			queary = search_hash_map(dictionary, hash_queary);
-			
-			clock_t end = clock();
-			
-			printf("Queary: %s\n", buff);
-			printf("  Hash: %ld\n", hash_queary);
-			printf("  Miss: %ld\n", dictionary->miss_count);
-			printf("  Clocks: %ld\n", end - start);
-
-
-			miss_count += dictionary->miss_count;
-
-			if (queary) {
-
-				hash_map_t * word_list = queary->thing;
-
-				printf("  Success!\n  Count: %ld\n", word_list->count);
-
-				printf("  Indices\n");
-
-				for(size_t j = 0; j < word_list->capacity; j++) {
-					if (word_list->map[j]) {
-
-						hash_node_t * pos_entry = word_list->map[j];
-						pos_t * pos = (pos_t *) pos_entry->thing;
-
-						printf("    %10ld\n", pos->index);
-					}
-				}
-
-			} else {
-
-				printf("  Fail!\n");
-
-			}
-
-			printf("\n");
-
-			word_length = next_word(queary_f, buff, buff_size);
-			word_index++;
+			tabulate(dir->d_name, dictionary, resolver);
 			
 		}
+		closedir(d);
+		
+	} else {
+		fprintf(stderr, "Failed to open toread dir!\n");
 	}
 	
 	
-	fclose(queary_f);
+	printf("Total number of unique words: %ld\n", dictionary->count);
 	
-	
-	printf("Average Miss rate: %g\n", (double)miss_count / (double)word_index);
-	printf("Log2 of Dictionary Count: %g\n", log2(dictionary->count));
-	
-	
-	/*
-	printf("%5ld | ", 0l);
+	// For every word
 	for(size_t i = 0; i < dictionary->capacity; i++) {
-		if (dictionary->map[i] == NULL) {
-			printf("_");
-		} else {
-			printf("X");
+		if (dictionary->map[i]) {
+			
+			unsigned long word_hash = dictionary->map[i]->thing_hash;
+			
+			hash_node_t * word_result = search_hash_map(resolver, word_hash);
+			
+			if (word_result) {
+				
+				string_t * word_str = (string_t *) word_result->thing;
+				
+				printf("WORD: %s\n", word_str->bytes);
+				
+			}
+			
+			hash_map_t * dictionary_entry = (hash_map_t *) dictionary->map[i]->thing;
+			
+			for(size_t j = 0; j < dictionary_entry->capacity; j++) {
+				if (dictionary_entry->map[j]) {
+					
+					unsigned long file_hash = dictionary_entry->map[j]->thing_hash;
+					
+					hash_node_t * file_result = search_hash_map(resolver, file_hash);
+					
+					if (file_result) {
+						
+						string_t * file_str = (string_t *) file_result->thing;
+						
+						printf("\tFILE: %s\n", file_str->bytes);
+						
+					}
+					
+					
+					counter_t * count = (counter_t *) dictionary_entry->map[j]->thing;
+					
+					printf("\tCOUNT: %ld\n", count->count);
+					
+					
+				}
+			}
+			
+			printf("\n");
 		}
-		if ((i + 1) % 64 == 0) printf("\n%5ld | ", i+1);
 	}
-	
-	printf("\n");
-	*/
 	
 	
 	u_destroy(dictionary);
-	
+	u_destroy(resolver);
 	
 	
 	clean_prime();

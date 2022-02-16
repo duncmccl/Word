@@ -8,7 +8,7 @@
 #include "prime.h"
 
 // Universal identifier
-enum OBJTYP {HASHMAP, INDEX};
+enum OBJTYP {HASHMAP, STRING, COUNTER};
 
 // Universal destroyer
 void u_destroy(void *);
@@ -43,6 +43,39 @@ typedef struct {
 	
 } hash_map_t;
 
+
+typedef struct {
+	
+	enum OBJTYP objtyp;
+	
+	size_t count;
+	
+} counter_t;
+
+typedef struct {
+	
+	enum OBJTYP objtyp;
+	
+	size_t length;
+	char * bytes;
+	
+} string_t;
+
+string_t * create_string(size_t length, char * bytes) {
+	string_t * rtn = (string_t *) malloc(sizeof(string_t));
+	rtn->objtyp = STRING;
+	rtn->length = length;
+	rtn->bytes = (char *) malloc(length);
+	memcpy(rtn->bytes, bytes, length);
+	
+	return rtn;
+}
+
+void destroy_string(string_t * str) {
+	
+	free(str->bytes);
+	free(str);
+}
 
 
 // Creates a hashnode
@@ -220,9 +253,13 @@ void u_destroy(void * obj) {
 			
 			break;
 			
+		case STRING:
 			
+			destroy_string((string_t *)obj);
 			
-		case INDEX:
+			break;
+			
+		case COUNTER:
 			
 			free(obj);
 			
@@ -250,7 +287,11 @@ size_t u_write(void * src, FILE * dst) {
 			
 			return write_hash_map((hash_map_t *) src, dst);
 			
-		case INDEX:
+		case STRING:
+			
+			return 0;
+			
+		case COUNTER:
 			
 			return 0;
 			
@@ -269,7 +310,9 @@ size_t u_read(FILE * src, void ** dst) {
 	
 	enum OBJTYP objtyp;
 	
-	fread(&objtyp, sizeof(enum OBJTYP), 1, src);
+	int n = fread(&objtyp, sizeof(enum OBJTYP), 1, src);
+	if (n <= 0) return n;
+	
 	fseek(src, -sizeof(enum OBJTYP), ftell(src));
 	
 	switch (objtyp) {
@@ -278,7 +321,11 @@ size_t u_read(FILE * src, void ** dst) {
 			
 			return read_hash_map(src, (hash_map_t **) dst);
 			
-		case INDEX:
+		case STRING:
+			
+			return 0;
+			
+		case COUNTER:
 			
 			return 0;
 			
