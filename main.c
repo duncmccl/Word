@@ -269,8 +269,8 @@ int main() {
 	}
 	
 	
-	printf("Total number of unique words: %ld\n", dictionary->count);
 	
+	// Print entire dictionary!
 	// For every word
 	for(size_t i = 0; i < dictionary->capacity; i++) {
 		if (dictionary->map[i]) {
@@ -285,7 +285,12 @@ int main() {
 				
 				printf("WORD: %s\n", word_str->bytes);
 				
+			} else {
+				
+				printf("WORD: ERR\n");
+				
 			}
+			printf("HASH: %ld\n|\n", word_hash);
 			
 			hash_map_t * dictionary_entry = (hash_map_t *) dictionary->map[i]->thing;
 			
@@ -300,22 +305,36 @@ int main() {
 						
 						string_t * file_str = (string_t *) file_result->thing;
 						
-						printf("\tFILE: %s\n", file_str->bytes);
+						printf("| FILE: %s\n", file_str->bytes);
+						
+					} else {
+						
+						printf("| FILE: ERR\n");
 						
 					}
+					printf("| HASH: %ld\n", file_hash);
 					
 					
 					counter_t * count = (counter_t *) dictionary_entry->map[j]->thing;
 					
-					printf("\tCOUNT: %ld\n", count->count);
+					printf("| COUNT: %ld\n", count->count);
 					
 					
+					printf("|\n");
 				}
 			}
 			
 			printf("\n");
 		}
 	}
+	
+	printf("Dictionary stats:\n");
+	printf("  Count: %ld\n", dictionary->count);
+	printf("  Capacity: %ld\n", dictionary->capacity);
+	printf("  Fill Percent: %g\n", (float)dictionary->count / (float)dictionary->capacity);
+	printf("  Collisions: %ld\n", dictionary->collision_count);
+	printf("  Collision Percent: %g\n", (float)dictionary->collision_count / (float)dictionary->count);
+	
 	
 	
 	u_destroy(dictionary);
