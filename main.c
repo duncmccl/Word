@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <math.h>
 
 #include "prime.h"
 #include "hashmap.h"
@@ -21,7 +22,7 @@ unsigned long simple_hash(const size_t len, const void * str) {
 	unsigned long m = 1e9 + 9;
 	
 	for(size_t i = 0; i < len; i++) {
-		rtn = (rtn + (cast_str[i] * pp)) % m;
+		rtn = (rtn + ((unsigned long)cast_str[i] * pp)) % m;
 		pp = (pp * p) % m;
 	}
 	
@@ -88,9 +89,46 @@ void clean_string(char * str) {
 }
 
 
+
+// Reads in a word from file
+// returns number of characters written to buffer, including null terminator.
+size_t next_word(FILE * file, char * buffer, size_t limit) {
+	
+	char c = 0;
+	
+	// Ignore all garbage before word
+	while (!feof(file) && (c < 'A' || ((c > 'Z') && (c < 'a')) || c > 'z')) {
+		c = fgetc(file);
+		if (feof(file)) {
+			return 0;
+		}
+	}
+	
+	size_t count = 0;
+	
+	// Read until end of word
+	while (count < (limit - 1) && !feof(file) && ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))) {
+		buffer[count] = tolower(c);
+		c = fgetc(file);
+		count++;
+	}
+	
+	// Write null terminator
+	buffer[count] = '\0';
+	count++;
+	
+	return count;
+	
+}
+
+
+
+
+
+
 typedef struct {
 	enum OBJTYP objtyp;
-	size_t row, col;
+	size_t index;
 } pos_t;
 
 
@@ -99,8 +137,12 @@ int main() {
 	// Initilize global prime number generator
 	init_prime();
 	
+	
+	
 	// Create Hashmap for dictionary
 	hash_map_t * dictionary = create_hash_map(10);
+	
+	
 	
 	// Read file and populate hashmap
 	FILE * text_f = fopen("text.txt", "r");
@@ -112,71 +154,49 @@ int main() {
 	
 	size_t buff_size = 2048;
 	char buff[buff_size];
+	size_t word_length = 0;
+	size_t word_index = 0;
 	
-	size_t row = 0;
 	
+	word_length = next_word(text_f, buff, buff_size);
 	
-	
-	while(fgets(buff, buff_size, text_f)) {
+	while(word_length > 1) {
 		
-		clean_string(buff);
+		unsigned long word_hash = simple_hash(word_length, buff);
 		
-		if (strlen(buff) > 0) {
-			
-			size_t col = 0;
-			
-			char * word = strtok(buff, " ");
-			
-			while(word) {
-				
-				size_t word_len = strlen(word) + 1;
-				unsigned long word_hash = simple_hash(word_len, word);
-				
-				
-				
-				size_t pos_len = sizeof(pos_t);
-				pos_t pos = (pos_t) {SIMPLE, row, col};
-				unsigned long pos_hash = simple_hash(pos_len, &pos);
-				hash_node_t * pos_node = create_hash_node(pos_hash, pos_len, &pos);
-				
-				
-				hash_node_t * dictionary_entry = search_hash_map(dictionary, word_hash);
-				
-				
-				if (dictionary_entry == NULL) {
-					hash_map_t dummy;
-					dummy.objtyp = HASHMAP;
-					dummy.capacity = next_prime(10);
-					dummy.count = 0;
-					dummy.map = (hash_node_t **) malloc(sizeof(hash_node_t *) * dummy.capacity);
-					for(size_t i = 0; i < dummy.capacity; i++) {
-						dummy.map[i] = NULL;
-					}
-					dummy.collision_count = 0;
-					dummy.miss_count = 0;
-					
-					dictionary_entry = create_hash_node(word_hash, sizeof(hash_map_t), &dummy);
-					hash_node_t * reject = insert_hash_map(dictionary, dictionary_entry);
-					if (reject) destroy_hash_node(reject, beelzebub);
-					
-				}
-				
-				hash_map_t * word_list = (hash_map_t *) dictionary_entry->thing;
-				
-				hash_node_t * reject = insert_hash_map(
-					word_list, 
-					pos_node);
-				if (reject) destroy_hash_node(reject, beelzebub);
-				
-				
-				word = strtok(word + word_len, " ");
-				col++;
+		size_t pos_len = sizeof(pos_t);
+		pos_t pos = (pos_t) {SIMPLE, word_index};
+		unsigned long pos_hash = simple_hash(pos_len, &pos);
+		hash_node_t * pos_node = create_hash_node(pos_hash, pos_len, &pos);
+		
+		hash_node_t * dictionary_entry = search_hash_map(dictionary, word_hash);
+		
+		if (dictionary_entry == NULL) {
+			hash_map_t dummy;
+			dummy.objtyp = HASHMAP;
+			dummy.capacity = next_prime(10);
+			dummy.count = 0;
+			dummy.map = (hash_node_t **) malloc(sizeof(hash_node_t *) * dummy.capacity);
+			for(size_t i = 0; i < dummy.capacity; i++) {
+				dummy.map[i] = NULL;
 			}
+			dummy.collision_count = 0;
+			dummy.miss_count = 0;
+			
+			dictionary_entry = create_hash_node(word_hash, sizeof(hash_map_t), &dummy);
+			hash_node_t * reject = insert_hash_map(dictionary, dictionary_entry);
+			if (reject) destroy_hash_node(reject, beelzebub);
 			
 		}
 		
+		hash_map_t * word_list = (hash_map_t *) dictionary_entry->thing;
 		
-		row++;
+		hash_node_t * reject = insert_hash_map(word_list, pos_node);
+		if (reject) destroy_hash_node(reject, beelzebub);
+		
+		
+		word_length = next_word(text_f, buff, buff_size);
+		word_index++;
 	}
 	
 	fclose(text_f);
@@ -195,10 +215,10 @@ int main() {
 	printf("\n");
 	
 	
-	char * str_queary;
-	size_t len_queary;
 	unsigned long hash_queary;
 	hash_node_t * queary;
+	
+	unsigned long miss_count = 0;
 	
 	FILE * queary_f = fopen("queary.txt", "r");
 	
@@ -208,64 +228,62 @@ int main() {
 	}
 	
 	
-	while(fgets(buff, buff_size, queary_f)) {
+	word_length = next_word(queary_f, buff, buff_size);
+	word_index = 0;
+	
+	while(word_length > 1) {
 		
-		clean_string(buff);
+		hash_queary = simple_hash(word_length, buff);
 		
-		if (strlen(buff) > 0) {
+		queary = search_hash_map(dictionary, hash_queary);
+		
+		printf("Queary: %s\n", buff);
+		printf("  Hash: %ld\n", hash_queary);
+		printf("  Miss: %ld\n", dictionary->miss_count);
+		
+		
+		miss_count += dictionary->miss_count;
+		
+		if (queary) {
 			
-			str_queary = strtok(buff, " ");
+			hash_map_t * word_list = queary->thing;
 			
-			while(str_queary) {
-				
-				len_queary = strlen(str_queary) + 1;
-				
-				hash_queary = simple_hash(len_queary, str_queary);
-				
-				queary = search_hash_map(dictionary, hash_queary);
-				
-				printf("Queary: %s\n", str_queary);
-				printf("  Hash: %ld\n", hash_queary);
-				printf("  Miss: %ld\n", dictionary->miss_count);
-				
-				if (queary) {
-					
-					hash_map_t * word_list = queary->thing;
-					
-					printf("  Success!\n  Count: %ld\n", word_list->count);
-					
-					printf("      row,   col\n");
+			printf("  Success!\n  Count: %ld\n", word_list->count);
+			
+			printf("  Indices\n");
 
-					for(size_t j = 0; j < word_list->capacity; j++) {
-						if (word_list->map[j]) {
-							
-							hash_node_t * pos_entry = word_list->map[j];
-							pos_t * pos = (pos_t *) pos_entry->thing;
-							
-							printf("  [ %5ld, %5ld ]\n", pos->row, pos->col);
-						}
-					}
-					
-				} else {
-					
-					printf("  Fail!\n");
-					
+			for(size_t j = 0; j < word_list->capacity; j++) {
+				if (word_list->map[j]) {
+
+					hash_node_t * pos_entry = word_list->map[j];
+					pos_t * pos = (pos_t *) pos_entry->thing;
+
+					printf("    %10ld\n", pos->index);
 				}
-				
-				printf("\n");
-				
-				str_queary = strtok(str_queary + len_queary, " ");
 			}
-			
+
+		} else {
+
+			printf("  Fail!\n");
+
 		}
-		
+
+		printf("\n");
+
+		word_length = next_word(queary_f, buff, buff_size);
+		word_index++;
 	}
+	
 	
 	fclose(queary_f);
 	
 	
+	printf("Average Miss rate: %g\n", (double)miss_count / (double)word_index);
+	printf("Log2 of Dictionary Count: %g\n", log2(dictionary->count));
 	
 	destroy_hash_map(dictionary, beelzebub);
+	
+	
 	
 	clean_prime();
 	
