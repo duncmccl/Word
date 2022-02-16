@@ -1,12 +1,11 @@
 # Word
-Excises using hash maps and reading files. 
 
-Program reads in a text file "text.txt".
+Excercise in search engine and programming concepts.
 
-Input text is scrubbed into lowercase only alphabet letters only.
+Program reads in every file in the directory 'toread'
 
-A nested hashmap is built using the hash of the words, then the hash of the word's index.
+recording the number of times each word occurs in each document
 
-Resulting hash map can then be queried to find every occurence of any word.
+then prints out the results.
 
 Any questions can be emailed to me: duncmccl@udel.edu
