@@ -1,10 +1,23 @@
 #ifndef __HASH_MAP_H
 #define __HASH_MAP_H
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "prime.h"
 
-enum OBJTYP {HASHMAP, SIMPLE};
-void beelzebub(void *);
+// Universal identifier
+enum OBJTYP {HASHMAP, INDEX};
+
+// Universal destroyer
+void u_destroy(void *);
+
+// Universal writer
+size_t u_write(void * src, FILE * dst);
+
+// Universal reader
+size_t u_read(FILE * src, void ** dst);
 
 
 typedef struct {
@@ -53,7 +66,8 @@ hash_node_t * insert_hash_map(hash_map_t * hm, hash_node_t * hn);
 // returns hashnode with the given hash or NULL if no node has hash
 hash_node_t * search_hash_map(hash_map_t * hm, unsigned long hash);
 
-
+size_t read_hash_map(FILE * src, hash_map_t ** dst);
+size_t write_hash_map(hash_map_t * src, FILE * dst);
 
 
 
@@ -183,11 +197,18 @@ hash_node_t * search_hash_map(hash_map_t * hm, unsigned long hash) {
 }
 
 
+size_t read_hash_map(FILE * src, hash_map_t ** dst) {
+	return 0;
+}
+
+size_t write_hash_map(hash_map_t * src, FILE * dst) {
+	return 0;
+}
 
 
 
 
-void beelzebub(void * obj) {
+void u_destroy(void * obj) {
 	
 	if (obj == NULL) return;
 	
@@ -195,14 +216,13 @@ void beelzebub(void * obj) {
 			
 		case HASHMAP:
 			
-			destroy_hash_map((hash_map_t *)obj, beelzebub);
+			destroy_hash_map((hash_map_t *)obj, u_destroy);
 			
 			break;
 			
 			
 			
-		case SIMPLE:
-			
+		case INDEX:
 			
 			free(obj);
 			
@@ -212,6 +232,59 @@ void beelzebub(void * obj) {
 		default:
 			
 			break;
+	}
+	
+}
+
+
+
+
+
+size_t u_write(void * src, FILE * dst) {
+	
+	if (src == NULL) return 0;
+	
+	switch( * ((enum OBJTYP *) src) ) {
+			
+		case HASHMAP:
+			
+			return write_hash_map((hash_map_t *) src, dst);
+			
+		case INDEX:
+			
+			return 0;
+			
+		default:
+			
+			return 0;
+			
+	}
+	
+}
+
+
+
+
+size_t u_read(FILE * src, void ** dst) {
+	
+	enum OBJTYP objtyp;
+	
+	fread(&objtyp, sizeof(enum OBJTYP), 1, src);
+	fseek(src, -sizeof(enum OBJTYP), ftell(src));
+	
+	switch (objtyp) {
+			
+		case HASHMAP:
+			
+			return read_hash_map(src, (hash_map_t **) dst);
+			
+		case INDEX:
+			
+			return 0;
+			
+		default:
+			
+			return 0;
 	}
 	
 }
