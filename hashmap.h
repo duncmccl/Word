@@ -99,9 +99,6 @@ hash_node_t * insert_hash_map(hash_map_t * hm, hash_node_t * hn);
 // returns hashnode with the given hash or NULL if no node has hash
 hash_node_t * search_hash_map(hash_map_t * hm, unsigned long hash);
 
-size_t read_hash_map(FILE * src, hash_map_t ** dst);
-size_t write_hash_map(hash_map_t * src, FILE * dst);
-
 
 
 hash_node_t * create_hash_node(unsigned long thing_hash, size_t thing_size, void * thing) {
@@ -230,15 +227,6 @@ hash_node_t * search_hash_map(hash_map_t * hm, unsigned long hash) {
 }
 
 
-size_t read_hash_map(FILE * src, hash_map_t ** dst) {
-	return 0;
-}
-
-size_t write_hash_map(hash_map_t * src, FILE * dst) {
-	return 0;
-}
-
-
 
 
 void u_destroy(void * obj) {
@@ -269,69 +257,6 @@ void u_destroy(void * obj) {
 		default:
 			
 			break;
-	}
-	
-}
-
-
-
-
-
-size_t u_write(void * src, FILE * dst) {
-	
-	if (src == NULL) return 0;
-	
-	switch( * ((enum OBJTYP *) src) ) {
-			
-		case HASHMAP:
-			
-			return write_hash_map((hash_map_t *) src, dst);
-			
-		case STRING:
-			
-			return 0;
-			
-		case COUNTER:
-			
-			return 0;
-			
-		default:
-			
-			return 0;
-			
-	}
-	
-}
-
-
-
-
-size_t u_read(FILE * src, void ** dst) {
-	
-	enum OBJTYP objtyp;
-	
-	int n = fread(&objtyp, sizeof(enum OBJTYP), 1, src);
-	if (n <= 0) return n;
-	
-	fseek(src, -sizeof(enum OBJTYP), ftell(src));
-	
-	switch (objtyp) {
-			
-		case HASHMAP:
-			
-			return read_hash_map(src, (hash_map_t **) dst);
-			
-		case STRING:
-			
-			return 0;
-			
-		case COUNTER:
-			
-			return 0;
-			
-		default:
-			
-			return 0;
 	}
 	
 }

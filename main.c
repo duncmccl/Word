@@ -249,7 +249,6 @@ int main() {
 	// Create Hashmap for hash resolver
 	hash_map_t * resolver = create_hash_map(10);
 	
-	
 	DIR * d;
 	struct dirent * dir;
 	d = opendir("./toread");
@@ -334,8 +333,14 @@ int main() {
 	printf("  Fill Percent: %g\n", (float)dictionary->count / (float)dictionary->capacity);
 	printf("  Collisions: %ld\n", dictionary->collision_count);
 	printf("  Collision Percent: %g\n", (float)dictionary->collision_count / (float)dictionary->count);
-	
-	
+	printf("\n");
+	printf("Resolver stats:\n");
+	printf("  Count: %ld\n", resolver->count);
+	printf("  Capacity: %ld\n", resolver->capacity);
+	printf("  Fill Percent: %g\n", (float)resolver->count / (float)resolver->capacity);
+	printf("  Collisions: %ld\n", resolver->collision_count);
+	printf("  Collision Percent: %g\n", (float)resolver->collision_count / (float)resolver->count);
+	printf("\n");
 	
 	u_destroy(dictionary);
 	u_destroy(resolver);
