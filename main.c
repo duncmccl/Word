@@ -6,10 +6,83 @@
 #include <time.h>
 #include <math.h>
 
-#include "prime.h"
+#include "universal.h"
+
+void destroy_hash_map(void * obj, void (*destructor)(void *));
+void destroy_arraylist(void * obj, void (*destructor)(void *));
+void destroy_string(void *);
+
+void u_destroy(void * obj) {
+	
+	if (obj == NULL) return;
+	
+	switch( * ((enum OBJTYP *) obj) ) {
+			
+		case INT:
+		case UINT:
+		case LONG:
+		case ULONG:
+		case FLOAT:
+		case DOUBLE:
+			
+			free(obj);
+			break;
+			
+		case HASHMAP:
+			
+			destroy_hash_map(obj, u_destroy);
+			break;
+			
+		case ARRAYLIST:
+			
+			destroy_arraylist(obj, u_destroy);
+			break;
+			
+		case STRING:
+			
+			destroy_string(obj);
+			break;
+			
+		case INVALID:
+		default:
+			fprintf(stderr, "UNIVERSAL DESTROY ERR: Invalid Object Type!\n");
+			break;
+	}
+	
+}
+
+
 #include "hashmap.h"
+#include "arraylist.h"
 
 
+
+typedef struct {
+	
+	enum OBJTYP objtyp;
+	
+	size_t length;
+	char * bytes;
+	
+} string_t;
+
+string_t * create_string(size_t length, const char * bytes) {
+	string_t * rtn = (string_t *) malloc(sizeof(string_t));
+	rtn->objtyp = STRING;
+	rtn->length = length;
+	rtn->bytes = (char *) malloc(length);
+	memcpy(rtn->bytes, bytes, length);
+	
+	return rtn;
+}
+
+void destroy_string(void * str) {
+	
+	string_t * c_str = (string_t *) str;
+	
+	free(c_str->bytes);
+	free(c_str);
+}
 
 /*
 
@@ -21,6 +94,12 @@ IDF(W) = Log(M+1) - Log(k)
 
 M = total number of documents
 K = number of documents containing word
+
+
+When making a queary:
+Also queary similar words and scale their relavancy factir by the similaity
+This will help catch plurals, or adverbs. eg: station vs stations, swift vs switftly
+
 
 */
 
@@ -80,21 +159,16 @@ size_t next_word(FILE * file_f, char * buffer, size_t limit) {
 
 
 
-void tabulate(const char * file_name, hash_map_t * dictionary, hash_map_t * resolver) {
+void tabulate(const char * file_name, hash_map_t * dictionary, hash_map_t * stats, hash_map_t * resolver) {
 	
-	size_t file_length = strlen(file_name) + 1;
-	unsigned long file_hash = simple_hash(file_length, file_name);
+	size_t filename_length = strlen(file_name) + 1;
+	unsigned long filename_hash = simple_hash(filename_length, file_name);
 	
 	// Hash resolver for file name
-	hash_node_t * file_hash_resolver_entry = search_hash_map(resolver, file_hash);
+	hash_node_t * file_hash_resolver_entry = search_hash_map(resolver, filename_hash);
 	if (!file_hash_resolver_entry) {
-		string_t dummy;
-		dummy.objtyp = STRING;
-		dummy.length = file_length;
-		dummy.bytes = (char *) malloc(file_length);
-		memcpy(dummy.bytes, file_name, file_length);
 		
-		file_hash_resolver_entry = create_hash_node(file_hash, sizeof(string_t), &dummy);
+		file_hash_resolver_entry = create_hash_node(filename_hash, create_string(filename_length, file_name));
 		
 		hash_node_t * reject = insert_hash_map(resolver, file_hash_resolver_entry);
 		if (reject) destroy_hash_node(reject, u_destroy);
@@ -114,7 +188,8 @@ void tabulate(const char * file_name, hash_map_t * dictionary, hash_map_t * reso
 	size_t buff_size = 2048;
 	char buff[buff_size];
 	size_t word_length = 0;
-	
+	size_t word_count = 0;
+	hash_node_t * reject;
 	
 	do {
 		
@@ -123,24 +198,6 @@ void tabulate(const char * file_name, hash_map_t * dictionary, hash_map_t * reso
 		if (word_length > 1) {
 			
 			unsigned long word_hash = simple_hash(word_length, buff);
-			
-			
-			// Hash Resolver for word
-			hash_node_t * word_hash_resolver_entry = search_hash_map(resolver, word_hash);
-			if (!word_hash_resolver_entry) {
-				
-				string_t dummy;
-				dummy.objtyp = STRING;
-				dummy.length = word_length;
-				dummy.bytes = (char *) malloc(word_length);
-				memcpy(dummy.bytes, buff, word_length);
-				
-				word_hash_resolver_entry = create_hash_node(word_hash, sizeof(string_t), &dummy);
-				
-				hash_node_t * reject = insert_hash_map(resolver, word_hash_resolver_entry);
-				if (reject) destroy_hash_node(reject, u_destroy);
-				
-			}
 			
 			
 			
@@ -156,31 +213,34 @@ void tabulate(const char * file_name, hash_map_t * dictionary, hash_map_t * reso
 				
 				
 				
-				hash_node_t * file_query = search_hash_map(dictionary_entry, file_hash);
+				// Does File exist for word? 
 				
-				// Does file exist for word? 
+				hash_node_t * file_query = search_hash_map(dictionary_entry, filename_hash);
 				
 				if (file_query) {
 					
-					// Word has appeared in file before
+					// File exists for word already
 					
-					counter_t * counter = (counter_t *) file_query->thing;
+					arraylist_t * index_list = (arraylist_t *) file_query->thing;
 					
-					counter->count++;
+					push_back_arraylist(index_list, create_simple(ULONG, &word_count));
 					
 				} else {
 					
-					// Word has not appeared in file before
+					// File does not exist for word
 					
-					// Create a file entry
-					counter_t dummy;
-					dummy.objtyp = COUNTER;
-					dummy.count = 1;
+					// Create a new arraylist for indices
+					arraylist_t * index_list = create_arraylist(sizeof(u_simple), 16);
 					
-					file_query = create_hash_node(file_hash, sizeof(counter_t), &dummy);
+					file_query = create_hash_node(filename_hash, index_list);
 					
-					hash_node_t * reject = insert_hash_map(dictionary_entry, file_query);
-					if (reject) destroy_hash_node(reject, u_destroy);
+					reject = insert_hash_map(dictionary_entry, file_query);
+					if (reject) u_destroy(reject);
+					
+					// Insert index into new arraylist
+					
+					push_back_arraylist(index_list, create_simple(ULONG, &word_count));
+					
 				}
 				
 				
@@ -188,41 +248,43 @@ void tabulate(const char * file_name, hash_map_t * dictionary, hash_map_t * reso
 				
 				// Word does not exist
 				
-				// Must make a new word entry
+				// New Hash Resolver for word
+				hash_node_t * word_hash_resolver_entry = create_hash_node(word_hash, create_string(word_length, buff));
 				
-				hash_map_t dummy;
-				dummy.objtyp = HASHMAP;
-				dummy.capacity = next_prime(10);
-				dummy.count = 0;
-				dummy.map = (hash_node_t **) malloc(sizeof(hash_node_t *) * dummy.capacity);
-				for(size_t i = 0; i < dummy.capacity; i++) {
-					dummy.map[i] = NULL;
-				}
-				dummy.collision_count = 0;
-				dummy.miss_count = 0;
-				
-				word_query = create_hash_node(word_hash, sizeof(hash_map_t), &dummy);
-				
-				hash_node_t * reject = insert_hash_map(dictionary, word_query);
-				if (reject) destroy_hash_node(reject, u_destroy);
+				reject = insert_hash_map(resolver, word_hash_resolver_entry);
+				if (reject) u_destroy(reject);
 				
 				
 				
-				hash_map_t * dictionary_entry = (hash_map_t *) word_query->thing;
+				// Must make a new dictionary entry for word
+				
+				hash_map_t * dictionary_entry = create_hash_map(10);
 				
 				
-				// Must make a new file entry
+				word_query = create_hash_node(word_hash, dictionary_entry);
 				
-				counter_t dummy_2;
-				dummy_2.objtyp = COUNTER;
-				dummy_2.count = 1;
+				reject = insert_hash_map(dictionary, word_query);
+				if (reject) u_destroy(reject);
 				
-				hash_node_t * file_query = create_hash_node(file_hash, sizeof(counter_t), &dummy_2);
+				
+				
+				// Must make a new arraylist of indices
+				
+				arraylist_t * index_list = create_arraylist(sizeof(u_simple), 16);
+				
+				hash_node_t * file_query = create_hash_node(filename_hash, index_list);
 				
 				reject = insert_hash_map(dictionary_entry, file_query);
-				if (reject) destroy_hash_node(reject, u_destroy);
+				if (reject) u_destroy(reject);
 				
+				
+				
+				// insert index into arraylist
+				
+				push_back_arraylist(index_list, create_simple(ULONG, &word_count));
 			}
+			
+			word_count++;
 			
 		}
 		
@@ -246,8 +308,13 @@ int main() {
 	// Create Hashmap for dictionary
 	hash_map_t * dictionary = create_hash_map(10);
 	
+	// Create Hashmap for file statistics
+	hash_map_t * stats = create_hash_map(10);
+	
 	// Create Hashmap for hash resolver
 	hash_map_t * resolver = create_hash_map(10);
+	
+	
 	
 	DIR * d;
 	struct dirent * dir;
@@ -258,7 +325,7 @@ int main() {
 			
 			if (!strcmp(dir->d_name, ".")) break;
 			
-			tabulate(dir->d_name, dictionary, resolver);
+			tabulate(dir->d_name, dictionary, stats, resolver);
 			
 		}
 		closedir(d);
@@ -269,15 +336,18 @@ int main() {
 	
 	
 	
+	
+	
 	// Print entire dictionary!
+	
 	// For every word
 	for(size_t i = 0; i < dictionary->capacity; i++) {
+		// If there node present
 		if (dictionary->map[i]) {
 			
+			// Get hash, resolve it into Word and print
 			unsigned long word_hash = dictionary->map[i]->thing_hash;
-			
 			hash_node_t * word_result = search_hash_map(resolver, word_hash);
-			
 			if (word_result) {
 				
 				string_t * word_str = (string_t *) word_result->thing;
@@ -291,15 +361,19 @@ int main() {
 			}
 			printf("HASH: %ld\n|\n", word_hash);
 			
+			
+			
+			// Hashmap of every file the word occurs in
 			hash_map_t * dictionary_entry = (hash_map_t *) dictionary->map[i]->thing;
 			
+			// For every file
 			for(size_t j = 0; j < dictionary_entry->capacity; j++) {
+				// If there is a node present
 				if (dictionary_entry->map[j]) {
 					
+					// Get hash, resolve it into file name and print
 					unsigned long file_hash = dictionary_entry->map[j]->thing_hash;
-					
 					hash_node_t * file_result = search_hash_map(resolver, file_hash);
-					
 					if (file_result) {
 						
 						string_t * file_str = (string_t *) file_result->thing;
@@ -314,9 +388,19 @@ int main() {
 					printf("| HASH: %ld\n", file_hash);
 					
 					
-					counter_t * count = (counter_t *) dictionary_entry->map[j]->thing;
+					// Counter for how many times word occurs in file
+					arraylist_t * indices = (arraylist_t *) dictionary_entry->map[j]->thing;
 					
-					printf("| COUNT: %ld\n", count->count);
+					printf("| COUNT: %ld\n", indices->count);
+					
+					
+					for(size_t k = 0; k < indices->count; k++) {
+						
+						u_simple * dummy = indices->data[k];
+						
+						printf("|  %5ld : %10ld\n", k, dummy->data.ul);
+						
+					}
 					
 					
 					printf("|\n");
@@ -342,7 +426,13 @@ int main() {
 	printf("  Collision Percent: %g\n", (float)resolver->collision_count / (float)resolver->count);
 	printf("\n");
 	
+	
+	
+	
+	
+	
 	u_destroy(dictionary);
+	u_destroy(stats);
 	u_destroy(resolver);
 	
 	

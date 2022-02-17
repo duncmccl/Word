@@ -7,18 +7,7 @@
 
 #include "prime.h"
 
-// Universal identifier
-enum OBJTYP {HASHMAP, STRING, COUNTER};
-
-// Universal destroyer
-void u_destroy(void *);
-
-// Universal writer
-size_t u_write(void * src, FILE * dst);
-
-// Universal reader
-size_t u_read(FILE * src, void ** dst);
-
+#include "universal.h"
 
 typedef struct {
 	
@@ -44,42 +33,9 @@ typedef struct {
 } hash_map_t;
 
 
-typedef struct {
-	
-	enum OBJTYP objtyp;
-	
-	size_t count;
-	
-} counter_t;
-
-typedef struct {
-	
-	enum OBJTYP objtyp;
-	
-	size_t length;
-	char * bytes;
-	
-} string_t;
-
-string_t * create_string(size_t length, char * bytes) {
-	string_t * rtn = (string_t *) malloc(sizeof(string_t));
-	rtn->objtyp = STRING;
-	rtn->length = length;
-	rtn->bytes = (char *) malloc(length);
-	memcpy(rtn->bytes, bytes, length);
-	
-	return rtn;
-}
-
-void destroy_string(string_t * str) {
-	
-	free(str->bytes);
-	free(str);
-}
-
 
 // Creates a hashnode
-hash_node_t * create_hash_node(unsigned long thing_hash, size_t thing_size, void * thing);
+hash_node_t * create_hash_node(unsigned long thing_hash, void * thing);
 
 // Destroys a hashnode
 void destroy_hash_node(hash_node_t * hn, void (*destructor)(void *));
@@ -88,7 +44,7 @@ void destroy_hash_node(hash_node_t * hn, void (*destructor)(void *));
 hash_map_t * create_hash_map(size_t initial_size);
 
 // Destroys a hashmap
-void destroy_hash_map(hash_map_t * hm, void(*destructor)(void *));
+void destroy_hash_map(void * hm, void(*destructor)(void *));
 
 // Increases capacity of hashmap
 void expand_map(hash_map_t * hm);
@@ -101,17 +57,13 @@ hash_node_t * search_hash_map(hash_map_t * hm, unsigned long hash);
 
 
 
-hash_node_t * create_hash_node(unsigned long thing_hash, size_t thing_size, void * thing) {
+hash_node_t * create_hash_node(unsigned long thing_hash, void * thing) {
 	
 	hash_node_t * rtn = (hash_node_t *) malloc(sizeof(hash_node_t));
 	
 	rtn->thing_hash = thing_hash;
 	
-	rtn->thing_size = thing_size;
-	
-	rtn->thing = (void *) malloc(thing_size);
-	
-	memcpy(rtn->thing, thing, thing_size);
+	rtn->thing = thing;
 	
 	return rtn;
 }
@@ -139,14 +91,16 @@ hash_map_t * create_hash_map(size_t initial_size) {
 	return rtn;
 }
 
-void destroy_hash_map(hash_map_t * hm, void (*destructor)(void *)) {
+void destroy_hash_map(void * hm, void (*destructor)(void *)) {
 	
-	for(size_t i = 0; i < hm->capacity; i++) {
-		if (hm->map[i] != NULL) destroy_hash_node(hm->map[i], destructor);
+	hash_map_t * c_hm = (hash_map_t *) hm;
+	
+	for(size_t i = 0; i < c_hm->capacity; i++) {
+		if (c_hm->map[i] != NULL) destroy_hash_node(c_hm->map[i], destructor);
 	}
 	
-	free(hm->map);
-	free(hm);
+	free(c_hm->map);
+	free(c_hm);
 	
 }
 
@@ -229,37 +183,7 @@ hash_node_t * search_hash_map(hash_map_t * hm, unsigned long hash) {
 
 
 
-void u_destroy(void * obj) {
-	
-	if (obj == NULL) return;
-	
-	switch( * ((enum OBJTYP *) obj) ) {
-			
-		case HASHMAP:
-			
-			destroy_hash_map((hash_map_t *)obj, u_destroy);
-			
-			break;
-			
-		case STRING:
-			
-			destroy_string((string_t *)obj);
-			
-			break;
-			
-		case COUNTER:
-			
-			free(obj);
-			
-			break;
-			
-			
-		default:
-			
-			break;
-	}
-	
-}
+
 
 
 #endif
