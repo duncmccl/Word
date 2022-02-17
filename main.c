@@ -6,8 +6,12 @@
 #include <time.h>
 #include <math.h>
 
+// User defined enum list to allow for custom types
+enum OBJTYP {INVALID, INT, UINT, LONG, ULONG, FLOAT, DOUBLE, HASHMAP, ARRAYLIST, STRING};
+
 #include "universal.h"
 
+// Define all destructors to be used in universal destructor
 void destroy_hash_map(void * obj, void (*destructor)(void *));
 void destroy_arraylist(void * obj, void (*destructor)(void *));
 void destroy_string(void *);
@@ -25,7 +29,7 @@ void u_destroy(void * obj) {
 		case FLOAT:
 		case DOUBLE:
 			
-			free(obj);
+			destroy_simple(obj);
 			break;
 			
 		case HASHMAP:
@@ -51,11 +55,13 @@ void u_destroy(void * obj) {
 	
 }
 
+// Include extra headers that implament universitality
 
 #include "hashmap.h"
 #include "arraylist.h"
 
 
+// Universal String
 
 typedef struct {
 	
@@ -84,6 +90,8 @@ void destroy_string(void * str) {
 	free(c_str);
 }
 
+
+
 /*
 
 IDF(W) = Log((M+1) / k)
@@ -96,12 +104,14 @@ M = total number of documents
 K = number of documents containing word
 
 
-When making a queary:
-Also queary similar words and scale their relavancy factir by the similaity
+When making a query:
+Also query similar words and scale their relavancy factir by the similaity
 This will help catch plurals, or adverbs. eg: station vs stations, swift vs switftly
 
 
 */
+
+// Helper functions
 
 unsigned long simple_hash(const size_t len, const void * str) {
 	
@@ -119,9 +129,6 @@ unsigned long simple_hash(const size_t len, const void * str) {
 	
 	return rtn;
 }
-
-
-
 
 unsigned char is_letter(unsigned char c) {
 	return ((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z'));
@@ -316,6 +323,7 @@ int main() {
 	
 	
 	
+	// Tabulate all words in all files in dir 'toread'
 	DIR * d;
 	struct dirent * dir;
 	d = opendir("./toread");
@@ -388,7 +396,7 @@ int main() {
 					printf("| HASH: %ld\n", file_hash);
 					
 					
-					// Counter for how many times word occurs in file
+					// Arraylist of indices of all instances of the word
 					arraylist_t * indices = (arraylist_t *) dictionary_entry->map[j]->thing;
 					
 					printf("| COUNT: %ld\n", indices->count);

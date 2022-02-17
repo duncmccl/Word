@@ -2,7 +2,8 @@
 #define __UNIVERSAL_H
 
 // Universal identifier
-enum OBJTYP {INVALID, INT, UINT, LONG, ULONG, FLOAT, DOUBLE, HASHMAP, ARRAYLIST, STRING};
+// MUST BE DEFINED BY USER BEFORE INCLUDING THIS FILE!
+enum OBJTYP;
 
 typedef struct {
 	enum OBJTYP objtyp;
@@ -57,6 +58,10 @@ u_simple * create_simple(enum OBJTYP objtyp, void * data) {
 	}
 	
 	return rtn;
+}
+
+void destroy_simple(void * obj) {
+	free(obj);
 }
 
 // Universal destroyer

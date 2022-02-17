@@ -21,6 +21,12 @@ arraylist_t * create_arraylist(size_t member_size, size_t initial_capacity);
 
 void destroy_arraylist(void * arr, void (*destructor)(void *));
 
+void expand_arraylist(arraylist_t * arr);
+void push_front_arraylist(arraylist_t * arr, void * obj);
+void * pop_back_arraylist(arraylist_t * arr);
+
+
+
 
 
 arraylist_t * create_arraylist(size_t member_size, size_t initial_capacity) {

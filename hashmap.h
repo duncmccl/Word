@@ -57,6 +57,8 @@ hash_node_t * search_hash_map(hash_map_t * hm, unsigned long hash);
 
 
 
+
+
 hash_node_t * create_hash_node(unsigned long thing_hash, void * thing) {
 	
 	hash_node_t * rtn = (hash_node_t *) malloc(sizeof(hash_node_t));
