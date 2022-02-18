@@ -109,6 +109,41 @@ Also query similar words and scale their relavancy factir by the similaity
 This will help catch plurals, or adverbs. eg: station vs stations, swift vs switftly
 
 
+
+
+Potential String similarity function:
+
+float similarity(const char * str_A, const char * str_B) {
+	
+	similarity is proportional to number of consecutive identical characters
+	similarity is inversly proportional to diffrence in lengths
+	
+	similarity = ( number of consecutive identical characters ) / max( len_A, len_B )
+	
+	eg:
+	
+	len_A = 5
+	str_A = "penny"
+	
+	len_B = 7
+	str_B = "pennies"
+	
+	similarity = 4 / 7 = 0.57
+	
+	
+	
+	len_A = 5
+	str_A = "benny"
+	
+	len_B = 5
+	str_B = "denny"
+	
+	similarity = 4 / 5 = 0.80
+}
+
+
+
+
 */
 
 // Helper functions
@@ -179,6 +214,7 @@ void tabulate(const char * file_name, hash_map_t * dictionary, hash_map_t * stat
 		
 		hash_node_t * reject = insert_hash_map(resolver, file_hash_resolver_entry);
 		if (reject) destroy_hash_node(reject, u_destroy);
+		
 	}
 	
 	
@@ -313,12 +349,15 @@ int main() {
 	init_prime();
 	
 	// Create Hashmap for dictionary
+	// HashMap[ Word Hash : HashMap[ Filename Hash : ArrayList[ Word Index ] ] ]
 	hash_map_t * dictionary = create_hash_map(10);
 	
 	// Create Hashmap for file statistics
+	// HashMap[ Filename Hash : File Statistics ]
 	hash_map_t * stats = create_hash_map(10);
 	
 	// Create Hashmap for hash resolver
+	// HashMap[ Word or Filename Hash : String ]
 	hash_map_t * resolver = create_hash_map(10);
 	
 	

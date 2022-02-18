@@ -12,7 +12,6 @@
 typedef struct {
 	
 	unsigned long thing_hash;
-	size_t thing_size;
 	void * thing;
 	
 } hash_node_t;
