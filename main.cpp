@@ -258,6 +258,7 @@ double standatd_deviation(std::list< std::tuple< std::size_t, std::size_t, std::
 }
 
 
+
 void tabulate( std::string file_path, 
 			   std::map< std::size_t, std::map< std::size_t, std::list< std::tuple< std::size_t, std::size_t, std::size_t > > > >& dictionary, 
 			   std::map< std::size_t, std::tuple< std::size_t, std::size_t > >& stats, 
@@ -284,17 +285,17 @@ void tabulate( std::string file_path,
 	
 	while(std::getline(file, line)) {
 		
+		// remove any non alphabet characters
+		std::replace_if(line.begin(), line.end(), [](const auto& c){ return (c < 'A') || (c > 'Z' && c < 'a') || (c > 'z'); }, ' ');
+			
+		// To lowercase
+		std::transform(line.begin(), line.end(), line.begin(), [](const auto& c) { return std::tolower(c); } );
+		
 		std::istringstream linestream(line);
 		col = 0;
 		
 		while(linestream >> word) {
-
-			// remove any non alphabet characters
-			word.erase(std::remove_if(word.begin(), word.end(), [](const auto& c) -> bool { return (c < 'A' || (c > 'Z' && c < 'a') || c > 'z'); } ), word.end());
-
-			// To lowercase
-			std::transform(word.begin(), word.end(), word.begin(), [](const auto& c) { return std::tolower(c); } );
-
+			
 			// If anything remains
 			if (word.size() > 0) {
 				
