@@ -90,20 +90,19 @@ size_t find_prime(unsigned long seed, size_t start, size_t end) {
 
 char is_prime(unsigned long seed) {
 	
+	if (seed <= 1) return 0;
+	
 	unsigned long sqrtseed = isqrt(seed);
 	
-	if (sqrtseed > PRIME_GEN_LIST[PRIME_GEN_COUNT - 1]) {
+	if (PRIME_GEN_LIST[PRIME_GEN_COUNT - 1] < sqrtseed) {
 		// Need more prime numbers!
 		next_prime(sqrtseed);
 	}
 	
-	size_t i = 0;
-	
-	while (PRIME_GEN_LIST[i] < sqrtseed) {
+	for (size_t i = 0; PRIME_GEN_LIST[i] <= sqrtseed; i++) {
 		
 		if ((seed % PRIME_GEN_LIST[i]) == 0) return 0;
 		
-		i++;
 	}
 	
 	return 1;
