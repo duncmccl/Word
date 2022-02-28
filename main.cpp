@@ -89,6 +89,90 @@ Normalized Discounted Cumulative Gain
 	
 	IdealDCG = DCG on set of Ideal Rankings
 
+
+
+
+
+
+
+
+
+
+
+Bayes' Rule
+
+P(X|Y) = P(X,Y) / P(Y)
+
+P(Y|X) = P(X,Y)/P(X)
+
+
+
+FairCoin = 0.75		UnfairCoin = 0.25
+FairHeads = 0.5		UnfairHeads = 0.6
+FairTails = 0.5		UnfairTails = 0.4
+
+
+H1 fair coin
+H2 bias coin
+
+Probability of X given Y P( X | Y )
+
+P( Head | H1 ) = 0.5
+P( Head | H2 ) = 0.6
+
+P( H1 ) = 0.75
+P( H2 ) = 0.25
+
+P( H1 | Head ) = P( Head | H1 ) / P( Head ) * P( H1 )
+			   = 0.5 / P( Head ) * 0.75
+
+P( Head ) = P( Head | H1 ) * P( H1 ) + P( Head | H2 ) * P( H2 )
+		  = 0.5 * 0.75 + 0.6 * 0.25
+		  = 0.375 + 0.15
+		  = 0.525
+
+P( H1 | Head ) = 0.5 / 0.525 * 0.75
+			   = 0.714285714
+
+P( H1 | Head ) == P( Head | H1 ) * P( H1 )
+			   == 0.5 / 0.75
+			   == 0.666666667
+
+
+
+
+
+
+P(h) = A
+P(t) = 1 - A
+
+P(h,t,h,h,t) = P(h)*P(t)*P(h)*P(h)*P(t)
+			 = A^3 * (1-A)^2
+
+
+
+
+
+
+P(X|Y) = P(Y|X)/P(Y)*P(X)
+
+P( "its" ) = #("its") / #("*")
+
+P( "water" | "its" ) = #("its water") / #("its")
+
+P( str_A | str_B ) = #(str_B + str_A) / #(str_A)
+
+
+
+Unigram Model
+
+P( W1, W2, W3 ... Wn ) === Prod( Wi, {i, 1, n})
+
+P( W1 ) + ... P( Wn ) = 1.0 // Sum of all probabilities of all words == 1.0
+
+
+
+
 */
 
 
@@ -264,15 +348,19 @@ void tabulate( std::string file_path,
 			   std::map< std::size_t, std::tuple< std::size_t, std::size_t > >& stats, 
 			   std::map< std::size_t, std::string >& resolver) {
 	
+	// Only Read regular files
 	if(!std::filesystem::is_regular_file(file_path)) return;
 	
-	std::ifstream file;
-	file.open(file_path.c_str());
+	// Only read .txt files
+	if (file_path.compare(file_path.size() - 4, 4, ".txt") != 0) return;
 	
 	std::cout << "\t" << file_path << std::endl;
 	
 	std::size_t filename_hash = std::hash< std::string >{}(file_path);
 	resolver[filename_hash] = file_path;
+	
+	std::ifstream file;
+	file.open(file_path.c_str());
 	
 	std::string line;
 	std::string word;
@@ -420,6 +508,7 @@ int main() {
 	dict_file.close();
 	
 	
+	
 	std::cout << "CREATING RESOLVER" << std::endl << std::endl;
 	
 	std::ofstream resv_file;
@@ -432,6 +521,11 @@ int main() {
 	}
 	
 	resv_file.close();
+	
+	
+	
+	
+	
 	
 	/*
 	std::cout << "STATS" << std::endl << std::endl;
